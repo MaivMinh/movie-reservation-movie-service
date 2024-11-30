@@ -42,6 +42,10 @@ public class MovieService {
     return new PageImpl<>(pages.getContent().stream().map(movieMapper::toDTO).toList(), pageable, pages.getTotalElements());
   }
 
+  public Page<Movie> findMovies(Pageable pageable) {
+    return movieRepo.findAll(pageable);
+  }
+
   public Page<Movie> findByCriteria(Map<String, String> criteria, Pageable pageable) {
     /*
      * Map<>: {

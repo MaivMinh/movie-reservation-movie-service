@@ -78,6 +78,9 @@ public class MovieController {
       return movieGenre;
     }).collect(Collectors.toList());
     movie.setMovieGenres(movieGenres);
+    movie.setExpired(false);
+    movie.setVoteCount(0);
+    movie.setVoteAverage(5.0);
     Movie saved = movieService.save(movie);
     if (saved == null || saved.getId() <= 0) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Can't save movie"));
@@ -125,6 +128,9 @@ public class MovieController {
       }
       if (movie.getReleaseDate() != null) {
         saved.setReleaseDate(movie.getReleaseDate());
+      }
+      if (movie.getIsExpired() != null) {
+        saved.setExpired(movie.getIsExpired());
       }
     }
     if (poster != null) {
@@ -179,7 +185,7 @@ public class MovieController {
       }
       pageable = PageRequest.of(pageNum, size, Sort.by(orders));
     } else pageable = PageRequest.of(pageNum, size);
-    Page<MovieDTO> movies = movieService.findMovieDTOs(pageable);
+    Page<Movie> movies = movieService.findMovies(pageable);
     return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", movies));
   }
 
@@ -235,6 +241,7 @@ public class MovieController {
 
     Movie movie = movieService.findMovieByIdOrElseThrow(id);
     List<Genre> genres = movie.getMovieGenres().stream().map(MovieGenre::getGenre).toList();
+    System.out.println(genres.size());
     return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", Map.of("movie", movie, "genres", genres)));
   }
 }

@@ -12,4 +12,5 @@ public class UpdatedMovie {
   private String description;
   private String trailer;
   private Date releaseDate;
+  private Boolean isExpired;
 }
