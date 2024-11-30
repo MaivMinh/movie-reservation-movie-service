@@ -6,12 +6,13 @@ import com.foolish.movieservice.model.MovieGenre;
 import com.foolish.movieservice.model.UpdatedMovie;
 import com.foolish.movieservice.response.ResponseData;
 import com.foolish.movieservice.response.ResponseError;
-import com.foolish.movieservice.service.AuthGrpcClient;
+import com.foolish.movieservice.service.AuthServiceGrpcClient;
 import com.foolish.movieservice.service.AzureBlobService;
 import com.foolish.movieservice.service.GenreService;
 import com.foolish.movieservice.service.MovieService;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import net.devh.boot.grpc.examples.lib.AuthResponse;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class MovieController {
   private final AzureBlobService azureBlobService;
   private final GenreService genreService;
   private final MovieService movieService;
-  private final AuthGrpcClient grpcClient;
+  private final AuthServiceGrpcClient authServiceGrpcClient;
 
   // Phương thức tạo ra một phim mới.
   @Transactional
@@ -86,7 +87,7 @@ public class MovieController {
   // Phương thức update movie.
   @Transactional
   @PatchMapping(value = "/{id}", consumes = {"multipart/form-data"})
-  public ResponseEntity<ResponseData> updateMovie(@RequestPart(value = "movie", required = false)UpdatedMovie movie, @RequestPart(value = "poster", required = false) MultipartFile poster, @RequestPart(value = "genres", required = false) List<Integer> genreIds, @PathVariable Integer id, @RequestPart(value = "backdrop", required = false) MultipartFile backdrop) {
+  public ResponseEntity<ResponseData> updateMovie(@RequestPart(value = "movie", required = false)UpdatedMovie movie, @RequestPart(value = "poster", required = false) MultipartFile poster, @RequestPart(value = "genres", required = false) List<Integer> genreIds, @PathVariable Integer id, @RequestPart(value = "backdrop", required = false) MultipartFile backdrop, HttpServletRequest request) {
     /* Dữ liệu update tuỳ thuộc vào client.
     * "movie": {
           "name": String,
@@ -99,6 +100,16 @@ public class MovieController {
       "genres": []
     *
     * */
+
+    // Lấy access token từ header của request.
+    String token = request.getHeader("Authorization");
+    String accessToken = token.substring(7);
+    AuthResponse response = authServiceGrpcClient.doIntrospect(accessToken);
+
+    if (!response.getActive() || !response.getRoles().equals("ROLE_ADMIN")) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    }
+    System.out.println(response.getUsername());
 
     Movie saved = movieService.findMovieByIdOrElseThrow(id);
     Map<String, String> map = new HashMap<>();
@@ -153,13 +164,4 @@ public class MovieController {
     }
     return ResponseEntity.noContent().build();
   }
-
-  // Lấy danh sách phim.
-  @GetMapping("")
-  public ResponseEntity<ResponseData> getMovies() {
-    AuthResponse response = grpcClient.doIntrospect("eyJhbGciOiJIUzM4NCJ9.eyJpc3MiOiJBdXRob3JpemF0aW9uIHNlcnZpY2UiLCJzdWIiOiJBY2Nlc3MgVG9rZW4iLCJ1c2VybmFtZSI6ImFkbWluIiwicm9sZXMiOiJST0xFX0FETUlOIiwiaWF0IjoxNzMyODA5NjA0LCJleHAiOjE3MzM0MTQ0MDR9.89aWX06-JZXCBFUXU_AtHCgp4VyGY0r9WSNxp5SElfTYFp7rR4PjFQCi5sAIGk__");
-    if (response.getActive()) return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", Map.of("active", true, "username", response.getUsername(), "roles", response.getRoles())));
-    return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Unauthorized"));
-  }
-
 }

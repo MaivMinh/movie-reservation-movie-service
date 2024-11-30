@@ -9,12 +9,12 @@ import net.devh.boot.grpc.examples.lib.AuthServiceGrpc;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AuthGrpcClient {
+public class AuthServiceGrpcClient {
 
   @GrpcClient("authService")
   private AuthServiceGrpc.AuthServiceBlockingStub authServiceBlockingStub;
 
-  public AuthGrpcClient() {
+  public AuthServiceGrpcClient() {
     ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9090).usePlaintext().build();
     authServiceBlockingStub = AuthServiceGrpc.newBlockingStub(channel);
   }
