@@ -1,16 +1,13 @@
 package com.foolish.movieservice.controller;
 
+import com.foolish.movieservice.constants.ROLE;
 import com.foolish.movieservice.model.Genre;
 import com.foolish.movieservice.model.Movie;
 import com.foolish.movieservice.model.MovieGenre;
 import com.foolish.movieservice.model.UpdatedMovie;
 import com.foolish.movieservice.response.ResponseData;
 import com.foolish.movieservice.response.ResponseError;
-import com.foolish.movieservice.service.AuthServiceGrpcClient;
-import com.foolish.movieservice.service.AzureBlobService;
-import com.foolish.movieservice.service.GenreService;
-import com.foolish.movieservice.service.MovieService;
-import jakarta.servlet.ServletOutputStream;
+import com.foolish.movieservice.service.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -18,6 +15,7 @@ import net.devh.boot.grpc.examples.lib.AuthResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,11 +32,12 @@ public class MovieController {
   private final GenreService genreService;
   private final MovieService movieService;
   private final AuthServiceGrpcClient authServiceGrpcClient;
+  private final IdentityService identityService;
 
   // Phương thức tạo ra một phim mới.
   @Transactional
   @PostMapping(value = "", consumes = {"multipart/form-data"})
-  public ResponseEntity<ResponseData> createMovie(@RequestPart("movie") @Valid Movie movie, @RequestPart("poster") MultipartFile poster, @RequestPart("backdrop") MultipartFile backdrop, @RequestPart("genres") List<Integer> genreIds) {
+  public ResponseEntity<ResponseData> createMovie(@RequestPart("movie") @Valid Movie movie, @RequestPart("poster") MultipartFile poster, @RequestPart("backdrop") MultipartFile backdrop, @RequestPart("genres") List<Integer> genreIds, HttpServletRequest request) {
 
     /*
     * {
@@ -53,6 +52,10 @@ public class MovieController {
       "genres": []
       }
     * */
+    AuthResponse response = identityService.identityUser(request);
+    if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    }
 
     // Lưu poster lên Azure blob. Sau đó lưu Movie mới vào hệ thống.
     String url = azureBlobService.writeBlobFile(poster);
@@ -87,7 +90,7 @@ public class MovieController {
   // Phương thức update movie.
   @Transactional
   @PatchMapping(value = "/{id}", consumes = {"multipart/form-data"})
-  public ResponseEntity<ResponseData> updateMovie(@RequestPart(value = "movie", required = false)UpdatedMovie movie, @RequestPart(value = "poster", required = false) MultipartFile poster, @RequestPart(value = "genres", required = false) List<Integer> genreIds, @PathVariable Integer id, @RequestPart(value = "backdrop", required = false) MultipartFile backdrop, HttpServletRequest request) {
+  public ResponseEntity<ResponseData> updateMovie(@RequestPart(value = "movie", required = false) UpdatedMovie movie, @RequestPart(value = "poster", required = false) MultipartFile poster, @RequestPart(value = "genres", required = false) List<Integer> genreIds, @PathVariable Integer id, @RequestPart(value = "backdrop", required = false) MultipartFile backdrop, HttpServletRequest request) {
     /* Dữ liệu update tuỳ thuộc vào client.
     * "movie": {
           "name": String,
@@ -101,28 +104,24 @@ public class MovieController {
     *
     * */
 
-    // Lấy access token từ header của request.
-    String token = request.getHeader("Authorization");
-    String accessToken = token.substring(7);
-    AuthResponse response = authServiceGrpcClient.doIntrospect(accessToken);
-
-    if (!response.getActive() || !response.getRoles().equals("ROLE_ADMIN")) {
+    // Lấy thông tin user từ token.
+    AuthResponse response = identityService.identityUser(request);
+    if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
     }
-    System.out.println(response.getUsername());
 
     Movie saved = movieService.findMovieByIdOrElseThrow(id);
     Map<String, String> map = new HashMap<>();
 
 
     if (movie != null) {
-      if (movie.getName() != null && !movie.getName().isEmpty()) {
+      if (StringUtils.hasText(movie.getName())) {
         saved.setName(movie.getName());
       }
-      if (movie.getDescription() != null && !movie.getDescription().isEmpty()) {
+      if (StringUtils.hasText(movie.getDescription())) {
         saved.setDescription(movie.getDescription());
       }
-      if (movie.getTrailer() != null && !movie.getTrailer().isEmpty()) {
+      if (StringUtils.hasText(movie.getTrailer())) {
         saved.setTrailer(movie.getTrailer());
       }
       if (movie.getReleaseDate() != null) {
@@ -158,9 +157,8 @@ public class MovieController {
       saved.setMovieGenres(movieGenres);
     }
     movieService.save(saved); // Cập nhật lại phim vào DB.
-
     if (!map.isEmpty()) {
-      return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(new ResponseData(HttpStatus.OK.value(), "Partially successful", map));
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseData(HttpStatus.MULTI_STATUS.value(), "Partially successful", map));
     }
     return ResponseEntity.noContent().build();
   }

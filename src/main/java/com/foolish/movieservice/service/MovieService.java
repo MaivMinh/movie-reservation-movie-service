@@ -15,18 +15,14 @@ public class MovieService {
   private final MovieRepo movieRepo;
 
   public Movie findMovieByPoster(String combine) {
-    return new Movie();
+    return movieRepo.findByPoster(combine);
   }
 
   public Movie save(Movie movie) {
-    return new Movie();
+    return movieRepo.save(movie);
   }
 
   public Movie findMovieByIdOrElseThrow(Integer id) {
     return movieRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Movie not found", Map.of("id", String.valueOf(id))));
-  }
-
-  public List<Movie> findAll() {
-    return movieRepo.findAll();
   }
 }
