@@ -1,17 +1,19 @@
 package com.foolish.movieservice.controller;
 
 import com.foolish.movieservice.constants.ROLE;
-import com.foolish.movieservice.model.Genre;
-import com.foolish.movieservice.model.Movie;
-import com.foolish.movieservice.model.MovieGenre;
-import com.foolish.movieservice.model.UpdatedMovie;
+import com.foolish.movieservice.model.*;
 import com.foolish.movieservice.response.ResponseData;
 import com.foolish.movieservice.response.ResponseError;
 import com.foolish.movieservice.service.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import net.devh.boot.grpc.examples.lib.AuthResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -160,5 +160,81 @@ public class MovieController {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseData(HttpStatus.MULTI_STATUS.value(), "Partially successful", map));
     }
     return ResponseEntity.noContent().build();
+  }
+
+
+  // Phương thức lấy danh sách phim.
+  @GetMapping(value = "")
+  public ResponseEntity<ResponseData> getMovies(@RequestParam(value = "pageSize", required = false) Integer pageSize, @RequestParam(value = "page", required = false) Integer page, @RequestParam(value = "sort", required = false) String sort) {
+    int size = (pageSize != null ? pageSize : 10);
+    int pageNum = (page != null ? page : 1) - 1;
+    Pageable pageable = null;
+
+    if (StringUtils.hasText(sort))  {
+      // sort=id:desc,releaseDate:asc
+      List<Sort.Order> orders  = new ArrayList<>();
+      String[] list = sort.split("");
+      for (String element : list) {
+        orders.add(new Sort.Order(Sort.Direction.fromString(element.split(":")[1].toUpperCase()), element.split(":")[0]));
+      }
+      pageable = PageRequest.of(pageNum, size, Sort.by(orders));
+    } else pageable = PageRequest.of(pageNum, size);
+    Page<MovieDTO> movies = movieService.findMovieDTOs(pageable);
+    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", movies));
+  }
+
+
+  // Hàm thực hiện chức năng tìm kiếm theo tiêu chí, sắp xếp và phân trang.
+  @PostMapping(value = "/search")
+  public ResponseEntity<ResponseData> searchMoviesByCriteria(@RequestBody @NotNull Map<String, String> criteria, @RequestParam(value = "sort", required = false) String sort, @RequestParam(value = "pageNumber", required = false) Integer pageNumber, @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+    /*
+     Map<>: {
+       name: String,
+       description: String,
+       release_date: +2024-10-10,
+       rating: +4.5,
+       vote_count: +100,
+     }
+     */
+
+    int pageNum = (pageNumber != null ? pageNumber : 1) - 1;
+    int size = pageSize != null ? pageSize : 10;
+    Pageable pageable = null;
+
+    if (StringUtils.hasText(sort))  {
+      // sort=id:desc,releaseDate:asc
+      List<Sort.Order> orders  = new ArrayList<>();
+      String[] list = sort.split("");
+      for (String element : list) {
+        orders.add(new Sort.Order(Sort.Direction.fromString(element.split(":")[1].toUpperCase()), element.split(":")[0]));
+      }
+      pageable = PageRequest.of(pageNum, size, Sort.by(orders));
+    } else pageable = PageRequest.of(pageNum, size);
+
+    Page<Movie> page = movieService.findByCriteria(criteria, pageable);
+    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", page));
+  }
+
+  @GetMapping(value = "/{id}")
+  public ResponseEntity<ResponseData> getMovieDetail(@PathVariable Integer id) {
+    /*
+    * Response:
+    {
+      "movie": {
+          "movie_id": Integer,
+          "name": String,
+          "description": String,
+          "trailer": String,
+          "poster": String,
+          "releaseDate": Date,
+          * voteCount: Integer,
+          * voteAverage: Integer,
+      },
+      "genres": [],
+    */
+
+    Movie movie = movieService.findMovieByIdOrElseThrow(id);
+    List<Genre> genres = movie.getMovieGenres().stream().map(MovieGenre::getGenre).toList();
+    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", Map.of("movie", movie, "genres", genres)));
   }
 }
