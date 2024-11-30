@@ -31,7 +31,6 @@ public class MovieController {
   private final AzureBlobService azureBlobService;
   private final GenreService genreService;
   private final MovieService movieService;
-  private final AuthServiceGrpcClient authServiceGrpcClient;
   private final IdentityService identityService;
 
   // Phương thức tạo ra một phim mới.
