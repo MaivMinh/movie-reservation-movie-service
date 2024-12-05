@@ -4,15 +4,15 @@ package net.devh.boot.grpc.example;
 option java_package = "net.devh.boot.grpc.examples.lib";
 option java_multiple_files = true;
 
-message CheckActiveStateRequest {
+message ActiveStateRequest {
   int32 id = 1;  // movie id.
 }
 
-message CheckActiveStateResponse {
+message ActiveStateResponse {
   bool active = 1;  // movie-service sẽ trả về trạng thái của movie này. Nếu là true, có nghĩa là vẫn có thể tạo showtime cho movie này.
 }
 
 
-service CheckActiveStateService {
-  rpc doCheckActiveState(CheckActiveStateRequest) returns (CheckActiveStateResponse);
+service CheckMovieActiveStateService {
+  rpc doCheckMovieActiveState(ActiveStateRequest) returns (ActiveStateResponse);
 }
