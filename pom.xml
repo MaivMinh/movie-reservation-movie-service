@@ -147,6 +147,14 @@
         </dependency>
         <!-- Client gRpc dependencies-->
 
+        <!--Server gRPC dependencies-->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-server-spring-boot-starter</artifactId>
+            <version>3.1.0.RELEASE</version>
+        </dependency>
+        <!--Server gRPC dependencies-->
+
     </dependencies>
 
     <build>

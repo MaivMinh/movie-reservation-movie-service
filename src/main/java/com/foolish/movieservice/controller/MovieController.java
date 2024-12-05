@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import net.devh.boot.grpc.examples.lib.AuthResponse;
+import net.devh.boot.grpc.examples.lib.IdentifyResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +31,7 @@ public class MovieController {
   private final AzureBlobService azureBlobService;
   private final GenreService genreService;
   private final MovieService movieService;
-  private final IdentityService identityService;
+  private final IdentifyService identifyService;
 
   // Phương thức tạo ra một phim mới.
   @Transactional
@@ -51,7 +51,7 @@ public class MovieController {
       "genres": []
       }
     * */
-    AuthResponse response = identityService.identityUser(request);
+    IdentifyResponse response = identifyService.doIdentify(request);
     if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
     }
@@ -107,7 +107,7 @@ public class MovieController {
     * */
 
     // Lấy thông tin user từ token.
-    AuthResponse response = identityService.identityUser(request);
+    IdentifyResponse response = identifyService.doIdentify(request);
     if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
     }
@@ -168,6 +168,13 @@ public class MovieController {
     return ResponseEntity.noContent().build();
   }
 
+  // Phương thức xóa một phim.
+  @DeleteMapping(value = "/{id}")
+  public ResponseEntity<ResponseData> deleteMovie(@PathVariable String id) {
+    Movie movie = movieService.findMovieByIdOrElseThrow(Integer.parseInt(id));
+    movieService.delete(movie);
+    return ResponseEntity.ok().body(new ResponseData(HttpStatus.OK.value(), "Success", null));
+  }
 
   // Phương thức lấy danh sách phim.
   @GetMapping(value = "")
@@ -179,7 +186,7 @@ public class MovieController {
     if (StringUtils.hasText(sort))  {
       // sort=id:desc,releaseDate:asc
       List<Sort.Order> orders  = new ArrayList<>();
-      String[] list = sort.split("");
+      String[] list = sort.split(",");
       for (String element : list) {
         orders.add(new Sort.Order(Sort.Direction.fromString(element.split(":")[1].toUpperCase()), element.split(":")[0]));
       }

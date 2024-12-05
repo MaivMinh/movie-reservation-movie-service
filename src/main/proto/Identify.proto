@@ -4,11 +4,11 @@ package net.devh.boot.grpc.example;
 option java_package = "net.devh.boot.grpc.examples.lib";
 option java_multiple_files = true;
 
-message AuthRequest {
+message IdentifyRequest {
   string token = 1;
 }
 
-message AuthResponse {
+message IdentifyResponse {
   bool active = 1;
   optional string username = 2;
   optional string roles = 3;
@@ -16,6 +16,6 @@ message AuthResponse {
 }
 
 
-service AuthService {
-  rpc doIntrospect(AuthRequest) returns (AuthResponse);
+service IdentifyService {
+  rpc doIdentify(IdentifyRequest) returns (IdentifyResponse);
 }

@@ -112,4 +112,12 @@ public class MovieService {
     }
     return movieRepo.findAll(specification, pageable);
   }
+
+  public Movie findMovieById(Integer id) {
+    return movieRepo.findMovieById(id);
+  }
+
+  public void delete(Movie movie) {
+    movieRepo.delete(movie);
+  }
 }
