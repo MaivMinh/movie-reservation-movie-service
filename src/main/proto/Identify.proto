@@ -10,9 +10,8 @@ message IdentifyRequest {
 
 message IdentifyResponse {
   bool active = 1;
-  optional string username = 2;
-  optional string roles = 3;
-  optional string message = 4;
+  string userId = 2;
+  string roles = 3;
 }
 
 

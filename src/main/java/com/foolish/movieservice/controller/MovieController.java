@@ -51,8 +51,10 @@ public class MovieController {
       "genres": []
       }
     * */
-    IdentifyResponse response = identifyService.doIdentify(request);
-    if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
+
+    // Kiểm tra có phải là ADMIN không.
+    IdentifyResponse iResponse = identifyService.doIdentify(request);
+    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
     }
 
@@ -106,9 +108,9 @@ public class MovieController {
     *
     * */
 
-    // Lấy thông tin user từ token.
-    IdentifyResponse response = identifyService.doIdentify(request);
-    if (!response.getActive() || !response.getRoles().equals(ROLE.ROLE_ADMIN)) {
+    // Kiểm tra có phải là ADMIN không.
+    IdentifyResponse iResponse = identifyService.doIdentify(request);
+    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
     }
 
@@ -170,7 +172,14 @@ public class MovieController {
 
   // Phương thức xóa một phim.
   @DeleteMapping(value = "/{id}")
-  public ResponseEntity<ResponseData> deleteMovie(@PathVariable String id) {
+  public ResponseEntity<ResponseData> deleteMovie(@PathVariable String id, HttpServletRequest request) {
+
+    // Kiểm tra có phải là ADMIN không.
+    IdentifyResponse iResponse = identifyService.doIdentify(request);
+    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    }
+
     Movie movie = movieService.findMovieByIdOrElseThrow(Integer.parseInt(id));
     movieService.delete(movie);
     return ResponseEntity.ok().body(new ResponseData(HttpStatus.OK.value(), "Success", null));
@@ -229,7 +238,7 @@ public class MovieController {
   }
 
   @GetMapping(value = "/{id}")
-  public ResponseEntity<ResponseData> getMovieDetail(@PathVariable Integer id) {
+  public ResponseEntity<ResponseData> getMovieDetail(@PathVariable Integer id, HttpServletRequest request) {
     /*
     * Response:
     {
@@ -245,6 +254,11 @@ public class MovieController {
       },
       "genres": [],
     */
+
+//    IdentifyResponse response = identifyService.doIdentify(request);
+//    if (!response.getActive()) {
+//      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+//    }
 
     Movie movie = movieService.findMovieByIdOrElseThrow(id);
     List<Genre> genres = movie.getMovieGenres().stream().map(MovieGenre::getGenre).toList();
