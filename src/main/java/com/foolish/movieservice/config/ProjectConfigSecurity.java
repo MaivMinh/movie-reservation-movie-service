@@ -20,22 +20,17 @@ public class ProjectConfigSecurity {
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
     http.csrf(AbstractHttpConfigurer::disable);
-    http
-            .authorizeHttpRequests(config -> config
-                    .requestMatchers(
-                            "/api/v1/movies/**").permitAll()
-                    .anyRequest().denyAll());
+    http.authorizeHttpRequests(config -> config.anyRequest().permitAll());
     return http.build();
   }
 
   // CORS Configuration
   @Bean
   public WebMvcConfigurer corsConfigurer() {
-    String url = env.getProperty("API_GATEWAY_URL");
     return new WebMvcConfigurer() {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedOrigins(url, "http://localhost:8080").allowCredentials(true).exposedHeaders("*").allowedMethods("*");
+        registry.addMapping("/**").allowedOrigins("*").allowCredentials(false).exposedHeaders("*").allowedMethods("*");
       }
     };
   }
