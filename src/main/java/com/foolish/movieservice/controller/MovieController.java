@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import net.devh.boot.grpc.examples.lib.IdentifyResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +30,33 @@ public class MovieController {
   private final AzureBlobService azureBlobService;
   private final GenreService genreService;
   private final MovieService movieService;
-  private final IdentifyService identifyService;
+  private final IdentityService identifyService;
+
+  // Phương thức lấy danh sách phim.
+  @GetMapping(value = "")
+  public ResponseEntity<ResponseData> getMovies(@RequestParam(value = "pageSize", required = false) Integer pageSize, @RequestParam(value = "page", required = false) Integer page, @RequestParam(value = "sort", required = false) String sort, HttpServletRequest request) {
+    boolean isAdmin = identifyService.isAdmin(request);
+    if (!isAdmin) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.FORBIDDEN.value(), "Forbidden!"));
+    }
+
+    int size = (pageSize != null ? pageSize : 10);
+    int pageNum = (page != null ? page : 1) - 1;
+    Pageable pageable = null;
+
+    if (StringUtils.hasText(sort))  {
+      // sort=id:desc,releaseDate:asc
+      List<Sort.Order> orders  = new ArrayList<>();
+      String[] list = sort.split(",");
+      for (String element : list) {
+        orders.add(new Sort.Order(Sort.Direction.fromString(element.split(":")[1].toUpperCase()), element.split(":")[0]));
+      }
+      pageable = PageRequest.of(pageNum, size, Sort.by(orders));
+    } else pageable = PageRequest.of(pageNum, size);
+    Page<Movie> movies = movieService.findMovies(pageable);
+    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", movies));
+  }
+
 
   // Phương thức tạo ra một phim mới.
   @Transactional
@@ -53,10 +78,11 @@ public class MovieController {
     * */
 
     // Kiểm tra có phải là ADMIN không.
-    IdentifyResponse iResponse = identifyService.doIdentify(request);
-    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
-      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    boolean isAdmin = identifyService.isAdmin(request);
+    if (!isAdmin) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.FORBIDDEN.value(), "Forbidden!"));
     }
+
 
     // Lưu poster lên Azure blob. Sau đó lưu Movie mới vào hệ thống.
     String url = azureBlobService.writeBlobFile(poster);
@@ -109,9 +135,9 @@ public class MovieController {
     * */
 
     // Kiểm tra có phải là ADMIN không.
-    IdentifyResponse iResponse = identifyService.doIdentify(request);
-    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
-      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    boolean isAdmin = identifyService.isAdmin(request);
+    if (!isAdmin) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.FORBIDDEN.value(), "Forbidden!"));
     }
 
     Movie saved = movieService.findMovieByIdOrElseThrow(id);
@@ -175,34 +201,14 @@ public class MovieController {
   public ResponseEntity<ResponseData> deleteMovie(@PathVariable String id, HttpServletRequest request) {
 
     // Kiểm tra có phải là ADMIN không.
-    IdentifyResponse iResponse = identifyService.doIdentify(request);
-    if (iResponse == null || !iResponse.getActive() || !iResponse.getRoles().equals(ROLE.ADMIN)) {
-      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.UNAUTHORIZED.value(), "Forbidden!"));
+    boolean isAdmin = identifyService.isAdmin(request);
+    if (!isAdmin) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.FORBIDDEN.value(), "Forbidden!"));
     }
 
     Movie movie = movieService.findMovieByIdOrElseThrow(Integer.parseInt(id));
     movieService.delete(movie);
     return ResponseEntity.ok().body(new ResponseData(HttpStatus.OK.value(), "Success", null));
-  }
-
-  // Phương thức lấy danh sách phim.
-  @GetMapping(value = "")
-  public ResponseEntity<ResponseData> getMovies(@RequestParam(value = "pageSize", required = false) Integer pageSize, @RequestParam(value = "page", required = false) Integer page, @RequestParam(value = "sort", required = false) String sort) {
-    int size = (pageSize != null ? pageSize : 10);
-    int pageNum = (page != null ? page : 1) - 1;
-    Pageable pageable = null;
-
-    if (StringUtils.hasText(sort))  {
-      // sort=id:desc,releaseDate:asc
-      List<Sort.Order> orders  = new ArrayList<>();
-      String[] list = sort.split(",");
-      for (String element : list) {
-        orders.add(new Sort.Order(Sort.Direction.fromString(element.split(":")[1].toUpperCase()), element.split(":")[0]));
-      }
-      pageable = PageRequest.of(pageNum, size, Sort.by(orders));
-    } else pageable = PageRequest.of(pageNum, size);
-    Page<Movie> movies = movieService.findMovies(pageable);
-    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", movies));
   }
 
 

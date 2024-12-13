@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package net.devh.boot.grpc.example;
+option java_package = "net.devh.boot.grpc.examples.lib";
+option java_multiple_files = true;
+
+message IdentityRequest {
+  string userId = 1;
+}
+
+message IdentityResponse {
+  bool active = 1;
+  string roles = 2;
+}
+
+
+service IdentityService {
+  rpc doIdentity(IdentityRequest) returns (IdentityResponse);
+}
