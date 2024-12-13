@@ -23,6 +23,7 @@ public class IdentityServiceGrpcClient {
   public IdentityServiceGrpcClient(Environment env) {
     String name = env.getProperty("AUTH_GRPC_SERVER_NAME", "localhost");
     int port = Integer.parseInt(Objects.requireNonNull(env.getProperty("AUTH_GRPC_SERVER_PORT", "9091")));
+    System.out.println("gRPC auth server: " + name + ":" + port);
     ManagedChannel channel = ManagedChannelBuilder.forAddress(name, port).usePlaintext().build();
     identityServiceBlockingStub = IdentityServiceGrpc.newBlockingStub(channel);
   }

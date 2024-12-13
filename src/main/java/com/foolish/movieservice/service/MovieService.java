@@ -13,6 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
@@ -46,7 +48,7 @@ public class MovieService {
     return movieRepo.findAll(pageable);
   }
 
-  public Page<Movie> findByCriteria(Map<String, String> criteria, Pageable pageable) {
+  public Page<Movie> findByCriteria(Map<String, String> criteria, Pageable pageable) throws ParseException {
     /*
      * Map<>: {
      * name: String,
@@ -69,15 +71,15 @@ public class MovieService {
       String value = String.valueOf(criteria.get("release_date"));
       char c = value.charAt(0);
       if (c == '+') {
-        String d = value.substring(1);
-        Date date = new Date(Long.parseLong(d));
+        String day = value.substring(1);
+        Date date = new SimpleDateFormat("yyyy-MM-dd").parse(day);
         specification = specification.and(where(releaseDateAfter(date).or(releaseDateEqualTo(date))));
       } else if (c == '-') {
-        String d = value.substring(1);
-        Date date = new Date(Long.parseLong(d));
+        String day = value.substring(1);
+        Date date = new SimpleDateFormat("yyyy-MM-dd").parse(day);
         specification = specification.and(where(releaseDateBefore(date).or(releaseDateEqualTo(date))));
       } else {
-        Date date = new Date(Long.parseLong(value));
+        Date date = new SimpleDateFormat("yyyy-MM-dd").parse(value);
         specification = specification.and(releaseDateEqualTo(date));
       }
     }

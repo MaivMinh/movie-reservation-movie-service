@@ -1,6 +1,5 @@
 package com.foolish.movieservice.controller;
 
-import com.foolish.movieservice.constants.ROLE;
 import com.foolish.movieservice.model.*;
 import com.foolish.movieservice.response.ResponseData;
 import com.foolish.movieservice.response.ResponseError;
@@ -20,6 +19,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.text.ParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -239,8 +239,12 @@ public class MovieController {
       pageable = PageRequest.of(pageNum, size, Sort.by(orders));
     } else pageable = PageRequest.of(pageNum, size);
 
-    Page<Movie> page = movieService.findByCriteria(criteria, pageable);
-    return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", page));
+    try {
+      Page<Movie> page = movieService.findByCriteria(criteria, pageable);
+      return ResponseEntity.ok(new ResponseData(HttpStatus.OK.value(), "Success", page));
+    } catch (ParseException e) {
+      return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.BAD_REQUEST.value(), "Invalid date format"));
+    }
   }
 
   @GetMapping(value = "/{id}")
