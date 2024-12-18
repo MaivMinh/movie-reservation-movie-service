@@ -77,7 +77,7 @@ public class MovieController {
 
     // Kiểm tra có phải là ADMIN không.
     boolean isAdmin = identifyService.isAdmin(request);
-    if (isAdmin) {
+    if (!isAdmin) {
       return ResponseEntity.status(HttpStatus.OK).body(new ResponseError(HttpStatus.FORBIDDEN.value(), "Forbidden!"));
     }
 

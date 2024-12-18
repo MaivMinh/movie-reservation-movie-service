@@ -18,8 +18,8 @@ public class S3Config {
 
   public S3Config(Environment env) {
     this.env = env;
-    String accessKey = env.getProperty("AWS_ACCESS_KEY");
-    String secretKey = env.getProperty("AWS_SECRET_KEY");
+    String accessKey = env.getProperty("AWS_ACCESS_KEY", "your-access-key");
+    String secretKey = env.getProperty("AWS_SECRET_KEY", "your-secret-key");
     credentials = AwsBasicCredentials.create(accessKey, secretKey);
   }
 
