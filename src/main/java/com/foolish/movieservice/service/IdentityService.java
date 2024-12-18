@@ -1,5 +1,6 @@
 package com.foolish.movieservice.service;
 
+import com.foolish.movieservice.constants.HEADER;
 import com.foolish.movieservice.constants.ROLE;
 import com.foolish.movieservice.grpcClients.IdentityServiceGrpcClient;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +18,7 @@ public class IdentityService {
   }
 
   public boolean isAdmin(HttpServletRequest request) {
-    String userId = request.getHeader("X-USER-ID");
+    String userId = request.getHeader(HEADER.X_USER_ID);
     if (userId == null || userId.isEmpty()) {
       return false;
     }
