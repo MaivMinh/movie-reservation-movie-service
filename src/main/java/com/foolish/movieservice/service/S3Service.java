@@ -42,8 +42,8 @@ public class S3Service {
               .build();
       s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
       return (cloudFront + key);
-    } catch (IOException e) {
-      throw new RuntimeException("Can");
+    } catch (Exception e) {
+      throw new RuntimeException("Can't upload file");
     }
   }
 
